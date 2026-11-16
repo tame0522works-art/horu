@@ -1,7 +1,11 @@
 import { certain, consistent, type Space } from './space.ts'
 
 export interface Solver {
-  /** cands からどう掘っても d 本以内で答えが決まるか。 */
+  /**
+   * cands からどう掘っても d 本以内で「分かることが全部分かる」か。
+   * 答えが決まるか、どの列を掘っても候補が分かれなくなれば終わり。
+   * 後者は建物の下に断層がある場合などで、本当の断面ではそうならないことを check:puzzles で確かめる。
+   */
   solvable(cands: readonly number[], d: number): boolean
   /** 調べた盤面の数（問題づくりの目安）。 */
   nodes: number
@@ -28,16 +32,21 @@ export function makeSolver(space: Space): Solver {
     nodes: 0,
     solvable(cands, d) {
       if (certain(space, cands) !== 0) return true
-      if (d === 0) return false
       const key = `${d}|${cands.join(',')}`
       const hit = memo.get(key)
       if (hit !== undefined) return hit
       solver.nodes++
+      const splits = cols.map((x) => groupBy(space, cands, x)).filter((gs) => gs.length > 1)
+      if (splits.length === 0) {
+        memo.set(key, true)
+        return true
+      }
+      if (d === 0) {
+        memo.set(key, false)
+        return false
+      }
       // 最悪の場合に残る候補が少ない列から試す
-      const splits = cols
-        .map((x) => groupBy(space, cands, x))
-        .filter((gs) => gs.length > 1)
-        .sort((a, b) => Math.max(...a.map((g) => g.length)) - Math.max(...b.map((g) => g.length)))
+      splits.sort((a, b) => Math.max(...a.map((g) => g.length)) - Math.max(...b.map((g) => g.length)))
       let ok = false
       for (const gs of splits) {
         if (gs.every((g) => solver.solvable(g, d - 1))) {
@@ -53,8 +62,9 @@ export function makeSolver(space: Space): Solver {
 }
 
 /**
- * 掘った列 drilled から、どう掘っても答えが決まる最少の追加本数（掘り方は結果を見て変えてよい）。
- * maxDepth までに決まらなければ null。
+ * 掘った列 drilled から、どう掘っても「分かることが全部分かる」最少の追加本数（掘り方は結果を見て変えてよい）。
+ * 本当の断面の答えが掘り尽くせば決まるなら、これは「どう掘っても答えが決まる最少本数」になる。
+ * maxDepth を超えれば null。
  */
 export function minimax(space: Space, drilled: readonly number[] = [], maxDepth = 8, solver = makeSolver(space)): number | null {
   const cands = consistent(space, drilled)

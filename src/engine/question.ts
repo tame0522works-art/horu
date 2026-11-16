@@ -24,7 +24,7 @@ export function answers(world: World, q: Question): Answer[] {
       const out: Answer[] = []
       for (let z = 0; z < world.depth; z++) out.push({ index: z, label: `${z} m` })
       out.push({ index: world.depth, label: `${world.depth} m より深い` })
-      out.push({ index: world.depth + 1, label: '削られてない' })
+      out.push({ index: world.depth + 1, label: '削られてもうない' })
       return out
     }
     case 'shallowest':

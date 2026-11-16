@@ -15,6 +15,10 @@ for (const p of puzzles) {
     if (mm === null) errs.push('どう掘っても答えが決まらない')
     else if (mm !== p.best) errs.push(`best ${p.best} だが最少は ${mm}`)
     if (certain(space, consistent(space, [])) !== 0) errs.push('掘らずに答えが決まる')
+    const open = Array.from({ length: p.world.width }, (_, x) => x).filter((x) => !p.blocked.includes(x))
+    const full = certain(space, consistent(space, open))
+    if (full === 0) errs.push('掘れる列を全部掘っても答えが決まらない')
+    else if ((full & space.truthMask) !== full) errs.push('決まった答えが本当の断面と合わない')
     if (p.question.kind === 'depth' && !p.blocked.includes(p.question.x)) errs.push('深さを聞く列が掘れる')
     if (p.blocked.length >= p.world.width) errs.push('掘れる列がない')
     if (p.question.kind === 'shallowest' || p.question.kind === 'fault') {

@@ -61,15 +61,16 @@ function puzzle(family: Family, truth: Params, question: Question, blocked: numb
 // 素朴な最少本数（覚えない・並べ替えない・全部の列を試す）
 function naive(space: Space, cands: number[], d: number): boolean {
   if (certain(space, cands) !== 0) return true
-  if (d === 0) return false
+  const splits: number[][][] = []
   for (let x = 0; x < space.puzzle.world.width; x++) {
     if (space.puzzle.blocked.includes(x)) continue
     const g = new Map<number, number[]>()
     for (const i of cands) g.set(space.obs[i][x], [...(g.get(space.obs[i][x]) ?? []), i])
-    if (g.size < 2) continue
-    if ([...g.values()].every((c) => naive(space, c, d - 1))) return true
+    if (g.size >= 2) splits.push([...g.values()])
   }
-  return false
+  if (splits.length === 0) return true
+  if (d === 0) return false
+  return splits.some((gs) => gs.every((c) => naive(space, c, d - 1)))
 }
 const naiveMinimax = (space: Space) => {
   const all = consistent(space, [])
@@ -124,6 +125,8 @@ for (let trial = 0; trial < 60; trial++) {
   const cert = certificates(space)
   if (mm !== null && cert && cert.size > mm) check(`無作為 ${trial}: 運の下限 ≤ 最少`, false, `${cert.size} > ${mm}`)
   if (mm === null) continue
+  const cols = Array.from({ length: space.puzzle.world.width }, (_, x) => x).filter((x) => !blocked.includes(x))
+  if (certain(space, consistent(space, cols)) === 0) continue // 本当の断面が掘り尽くしても決まらない
   // ヒントどおりに掘ると mm 本以内で決まり、決まった答えは本当の断面が受け入れる
   const drilled: number[] = []
   while (certain(space, consistent(space, drilled)) === 0) {
