@@ -9,8 +9,11 @@ const LEFT = 26
 
 export const ROCKS: Rock[] = ['soil', 'gravel', 'sand', 'mud', 'lime', 'tuff', 'coal', 'granite']
 
-/** 岩ごとの模様。色は CSS の変数（--r-岩）で、明暗どちらでも見分けやすくする。 */
-export function RockPatterns() {
+/**
+ * 岩ごとの模様。色は CSS の変数（--r-岩）で、明暗どちらでも見分けやすくする。
+ * 断面と凡例の両方から url(#p-岩) で使うので、id が重ならないよう画面に1つだけ置く（PatternDefs）。
+ */
+function RockPatterns() {
   return (
     <defs>
       {ROCKS.map((r) => (
@@ -27,6 +30,15 @@ export function RockPatterns() {
         </pattern>
       ))}
     </defs>
+  )
+}
+
+/** 模様の定義だけを持つ見えない SVG。display: none にすると模様が描かれないブラウザがあるので、大きさ 0 で置く。 */
+export function PatternDefs() {
+  return (
+    <svg className="pattern-defs" width="0" height="0" aria-hidden="true" focusable="false">
+      <RockPatterns />
+    </svg>
   )
 }
 
@@ -120,7 +132,6 @@ export function Board({ world, question, blocked, truth, drilled, selected, hint
 
   return (
     <svg className="board" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="断面。列を押して選ぶ">
-      <RockPatterns />
       <clipPath id="under">
         <rect x={LEFT} y={groundY} width={width * COL} height={depth * M} />
       </clipPath>
@@ -245,7 +256,6 @@ export function StackColumn({ stack, title, cover = false }: { stack: Stack; tit
   let y = 14
   return (
     <svg className="stack" viewBox={`0 0 132 ${H}`} role="img" aria-label={`${title}: ${stack.layers.map((l) => `${ROCK_NAME[l.rock]} ${l.thickness} m`).join('、')}${cover ? '' : `、その下は${ROCK_NAME[stack.base]}`}`}>
-      <RockPatterns />
       <text x={0} y={9} className="stack-title">
         {title}
       </text>

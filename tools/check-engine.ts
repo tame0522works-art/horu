@@ -1,4 +1,5 @@
 // 手で答えの分かる例と、素朴な実装との突き合わせでエンジンを確かめる。
+import { judge } from '../src/engine/judge.ts'
 import { acceptMask } from '../src/engine/question.ts'
 import { heights, layerDepth, rockAt, sectionOf, type Family, type Params, type Slope, type Stack, type World } from '../src/engine/section.ts'
 import { bestDrills, certificates, makeSolver, minimax } from '../src/engine/solve.ts'
@@ -56,6 +57,20 @@ check('heights: 断層は右側をずらす', heights(W, { c: 0, s1: s(0), fault
 
 function puzzle(family: Family, truth: Params, question: Question, blocked: number[] = [], world: World = W): Puzzle {
   return { id: 't', title: 't', world, family, truth, question, blocked, best: 0 }
+}
+
+// 判定: 同じ深さの列が並ぶとき、確かでない方の列で当たっても「確か」にしない。
+// 本当は水平（どの列も同じ深さ）、候補に右上がりが残っていると、確かなのは右端だけ
+{
+  const space = buildSpace(
+    puzzle({ offsets: [2, 2], slopes: [s(0), s(1)], fold: 'none', faults: { throws: [], allowNone: true } }, { c: 2, s1: s(0) }, { kind: 'shallowest', layer: 4 }),
+  )
+  const left = judge(space, [0], 0)
+  check('判定: 当たりだが確かでない列', left.correct && !left.sure && left.decided && left.left === 2, JSON.stringify(left))
+  const right = judge(space, [0], 5)
+  check('判定: 確かな列', right.correct && right.sure)
+  const both = judge(space, [0, 5], 0)
+  check('判定: 掘って水平と分かれば左端も確か', both.correct && both.sure && both.left === 1)
 }
 
 // 素朴な最少本数（覚えない・並べ替えない・全部の列を試す）

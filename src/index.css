@@ -649,3 +649,14 @@ a {
 .top .ghost {
   white-space: nowrap;
 }
+
+.pattern-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.sub .next {
+  flex: 1;
+}

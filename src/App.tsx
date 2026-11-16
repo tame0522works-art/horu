@@ -4,11 +4,12 @@ import { describeFamily, describeQuestion, ROCK_NAME } from './engine/rules.ts'
 import { score, type Result } from './engine/score.ts'
 import { core, sectionOf } from './engine/section.ts'
 import { bestDrills, makeSolver } from './engine/solve.ts'
+import { judge } from './engine/judge.ts'
 import { buildSpace, certain, consistent } from './engine/space.ts'
 import { puzzles } from './puzzles/index.ts'
 import type { Puzzle } from './puzzles/types.ts'
 import { loadProgress, saveStars, type Progress } from './storage.ts'
-import { Board, runsOf, StackColumn } from './ui/Board.tsx'
+import { Board, PatternDefs, runsOf, StackColumn } from './ui/Board.tsx'
 
 export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
@@ -77,6 +78,8 @@ interface Answered {
   result: Result
   /** 答えたときに残っていた断面の数。 */
   left: number
+  /** 答えたときに、何かの答えが確かだと言えたか。 */
+  decided: boolean
 }
 
 function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNext }: PlayProps) {
@@ -113,11 +116,9 @@ function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNex
   }
 
   const submit = (ans: number) => {
-    const cands = consistent(space, drilled)
-    const sure = certain(space, cands) !== 0
-    const correct = (space.truthMask & (1 << ans)) !== 0
-    const result = score(drilled.length, puzzle.best, correct, sure)
-    setAnswered({ index: ans, result, left: cands.length })
+    const j = judge(space, drilled, ans)
+    const result = score(drilled.length, puzzle.best, j.correct, j.sure)
+    setAnswered({ index: ans, result, left: j.left, decided: j.decided })
     setAnswering(false)
     setSelected(null)
     setHint(null)
@@ -141,10 +142,20 @@ function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNex
     setSelected(null)
   }
 
+  // 答えたあとに進む先。案内を閉じて断面を見ているあいだも、下のボタンから進めるようにする
+  const next = !answered
+    ? null
+    : answered.result.correct
+      ? onNext
+        ? { label: '次の問題へ', run: onNext }
+        : { label: '一覧へ', run: onBack }
+      : { label: 'もう一度', run: reset }
+
   const correctLabels = options.filter((a) => space.truthMask & (1 << a.index)).map((a) => a.label)
 
   return (
     <main className="play">
+      <PatternDefs />
       <header className="top">
         <button type="button" className="ghost" onClick={onBack}>
           ← 一覧
@@ -239,9 +250,16 @@ function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNex
             </button>
           </>
         )}
-        <button type="button" className="ghost" onClick={reset} disabled={drilled.length === 0 && !answered}>
-          最初から
-        </button>
+        {!(answered && !answered.result.correct) && (
+          <button type="button" className="ghost" onClick={reset} disabled={drilled.length === 0 && !answered}>
+            最初から
+          </button>
+        )}
+        {next && dismissed && (
+          <button type="button" className="primary next" onClick={next.run}>
+            {next.label}
+          </button>
+        )}
       </div>
 
       {answered && !dismissed && (
@@ -254,7 +272,7 @@ function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNex
               <p>
                 {answered.result.certain
                   ? `正解。${drilled.length} 本で答えが決まっていた。${answered.result.stars < 3 ? `どう掘っても ${puzzle.best} 本で決められる。` : ''}`
-                  : `当たり。ただ、この時点ではまだ ${answered.left} 通りの断面がありえて、答えは決まっていなかった。`}
+                  : `当たり。ただ、この時点ではまだ ${answered.left} 通りの断面がありえて、選んだ答えは確かではなかった。`}
               </p>
               <p className="muted">
                 掘る前にありえた断面は {total} 通り。{bestBefore >= answered.result.stars ? `前に ★${bestBefore} を取っています。` : '記録しました。'}
@@ -265,7 +283,7 @@ function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNex
               <p className="big miss">はずれ</p>
               <p>正解は「{correctLabels.join('」か「')}」。</p>
               <p className="muted">
-                {answered.result.certain ? '答えたときには、掘った結果からもう答えは決まっていた。' : `答えたときは、まだ ${answered.left} 通りの断面がありえた。`}
+                {answered.decided ? '答えたときには、掘った結果からもう答えは決まっていた。' : `答えたときは、まだ ${answered.left} 通りの断面がありえた。`}
               </p>
             </>
           )}
@@ -273,17 +291,9 @@ function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNex
             <button type="button" className="ghost" onClick={() => setDismissed(true)}>
               断面を見る
             </button>
-            {answered.result.correct && onNext ? (
-              <button type="button" onClick={onNext}>
-                次の問題へ
-              </button>
-            ) : answered.result.correct ? (
-              <button type="button" onClick={onBack}>
-                一覧へ
-              </button>
-            ) : (
-              <button type="button" onClick={reset}>
-                もう一度
+            {next && (
+              <button type="button" onClick={next.run}>
+                {next.label}
               </button>
             )}
           </div>

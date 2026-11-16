@@ -167,7 +167,11 @@ const scenarios: Scenario[] = [
       await ui.answer(correctLabel('tilt'))
       assert.match(await ui.text('.clear'), /★★★.*正解。2 本で答えが決まっていた。.*記録しました/)
       assert.ok((await ui.count('.reveal .band')) > 0, '断面が現れない')
+      // 案内を閉じて断面を見ているあいだも、下のボタンから次の問題へ進める
       await ui.press('断面を見る')
+      assert.equal(await ui.count('.clear'), 0)
+      await ui.press('次の問題へ')
+      assert.match(await ui.text('.top .title'), /^3\. /)
       await ui.press('←一覧')
       assert.match(await ui.text('.menu header .muted'), /★ 3 \/ 60/)
       await ui.open()
@@ -210,6 +214,9 @@ const scenarios: Scenario[] = [
       await ui.answer('1〜2 列目の間')
       assert.match(await ui.text('.clear'), /はずれ.*正解は「6〜7 列目の間」/)
       assert.equal(await ui.count('.reveal .fault-line'), 1)
+      // 断面を見たあとは、下の「もう一度」でやり直す（同じことをする「最初から」は出さない）
+      await ui.press('断面を見る')
+      assert.equal(await ui.page.run<boolean>(`return [...document.querySelectorAll('.sub button')].some(b => b.textContent.includes('最初から'))`), false)
       await ui.press('もう一度')
       assert.equal(await ui.drilled(), 0)
       assert.equal(await ui.count('.clear'), 0)
@@ -261,6 +268,10 @@ const scenarios: Scenario[] = [
       assert.equal(await ui.count('.stacks .stack'), 2)
       await ui.answer('0 m')
       assert.equal(await ui.count('.reveal .unconformity'), 1)
+      // 岩の模様は画面に1組だけ（断面と凡例で id が重ならない）
+      const ids = await ui.page.run<string[]>(`return [...document.querySelectorAll('[id]')].map(e => e.id)`)
+      assert.deepEqual(ids.filter((id, k) => ids.indexOf(id) !== k), [], 'id が重なっている')
+      assert.equal(await ui.count('pattern'), 8)
     },
   },
   {
