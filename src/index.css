@@ -639,3 +639,13 @@ a {
 .clear .big.miss {
   color: var(--wrong);
 }
+
+.unconformity {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 3;
+}
+
+.top .ghost {
+  white-space: nowrap;
+}

@@ -12,7 +12,10 @@
     "check": "tsx tools/check-engine.ts && tsx tools/check-puzzles.ts",
     "check:engine": "tsx tools/check-engine.ts",
     "check:puzzles": "tsx tools/check-puzzles.ts",
-    "show": "tsx tools/show.ts"
+    "show": "tsx tools/show.ts",
+    "e2e": "vite build --outDir dist-e2e --emptyOutDir && tsx tools/e2e.ts",
+    "screenshots": "tsx tools/screenshots.ts",
+    "fill-best": "tsx tools/fill-best.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

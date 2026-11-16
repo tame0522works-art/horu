@@ -215,7 +215,7 @@ function Play({ index, puzzle, bestBefore: bestAtStart, onCleared, onBack, onNex
           </ul>
           <div className="stacks">
             <StackColumn stack={world.stack} title="地層の重なり" />
-            {world.coverStack && puzzle.family.cover && <StackColumn stack={world.coverStack} title="上に載る地層" />}
+            {world.coverStack && puzzle.family.cover && <StackColumn stack={world.coverStack} title="上に載る地層（上から）" cover />}
           </div>
         </div>
       </details>

@@ -135,11 +135,12 @@ export function Board({ world, question, blocked, truth, drilled, selected, hint
           {coverBands(world, truth).map((b, i) => (
             <rect key={`c${i}`} x={LEFT} y={b.y} width={width * COL} height={b.h} fill={`url(#p-${b.rock})`} className="band" />
           ))}
+          {truth.cover > 0 && <line x1={LEFT} x2={LEFT + width * COL} y1={TOP + truth.cover * M} y2={TOP + truth.cover * M} className="unconformity" />}
           {truth.params.fault && (
             <line
               x1={LEFT + (truth.params.fault.at + 1) * COL}
               x2={LEFT + (truth.params.fault.at + 1) * COL}
-              y1={groundY}
+              y1={TOP + truth.cover * M}
               y2={bottomY}
               className="fault-line"
             />
@@ -236,13 +237,14 @@ export function Board({ world, question, blocked, truth, drilled, selected, hint
 }
 
 /** 地層の重なりの柱（凡例）。 */
-export function StackColumn({ stack, title }: { stack: Stack; title: string }) {
+/** cover: 不整合の上に載る地層（上へ続かず、厚さの分だけ載る。下は古い地層なので基盤は描かない）。 */
+export function StackColumn({ stack, title, cover = false }: { stack: Stack; title: string; cover?: boolean }) {
   const S = 9
   const total = stack.layers.reduce((s, l) => s + l.thickness, 0)
-  const H = (total + 3) * S + 26
+  const H = (total + (cover ? 0 : 3)) * S + 26
   let y = 14
   return (
-    <svg className="stack" viewBox={`0 0 132 ${H}`} role="img" aria-label={`${title}: ${stack.layers.map((l) => `${ROCK_NAME[l.rock]} ${l.thickness} m`).join('、')}、その下は${ROCK_NAME[stack.base]}`}>
+    <svg className="stack" viewBox={`0 0 132 ${H}`} role="img" aria-label={`${title}: ${stack.layers.map((l) => `${ROCK_NAME[l.rock]} ${l.thickness} m`).join('、')}${cover ? '' : `、その下は${ROCK_NAME[stack.base]}`}`}>
       <RockPatterns />
       <text x={0} y={9} className="stack-title">
         {title}
@@ -253,18 +255,22 @@ export function StackColumn({ stack, title }: { stack: Stack; title: string }) {
           <g key={i}>
             <rect x={0} y={y} width={26} height={h} fill={`url(#p-${l.rock})`} className="core-run" />
             <text x={32} y={y + h / 2 + 4} className="stack-label">
-              {ROCK_NAME[l.rock]} {l.thickness} m{i === 0 ? '（上へ続く）' : ''}
+              {ROCK_NAME[l.rock]} {l.thickness} m{i === 0 && !cover ? '（上へ続く）' : ''}
             </text>
           </g>
         )
         y += h
         return g
       })}
-      <rect x={0} y={y} width={26} height={3 * S} fill={`url(#p-${stack.base})`} className="core-run" />
-      <text x={32} y={y + 1.5 * S + 4} className="stack-label">
-        {ROCK_NAME[stack.base]}（下へ続く）
-      </text>
-      <rect x={0} y={14} width={26} height={y + 3 * S - 14} className="core-edge" />
+      {!cover && (
+        <>
+          <rect x={0} y={y} width={26} height={3 * S} fill={`url(#p-${stack.base})`} className="core-run" />
+          <text x={32} y={y + 1.5 * S + 4} className="stack-label">
+            {ROCK_NAME[stack.base]}（下へ続く）
+          </text>
+        </>
+      )}
+      <rect x={0} y={14} width={26} height={y + (cover ? 0 : 3 * S) - 14} className="core-edge" />
     </svg>
   )
 }
